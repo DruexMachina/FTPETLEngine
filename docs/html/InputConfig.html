@@ -1,0 +1,307 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Input Configuration &mdash; FTPETLEngine 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FTPETLEngine
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="FTPETLEngine.html">FTPETLEngine package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FTPETLEngine.html#input-configuration">Input Configuration</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FTPETLEngine</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Input Configuration</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/InputConfig.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="input-configuration">
+<h1>Input Configuration<a class="headerlink" href="#input-configuration" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="structure">
+<h2>Structure<a class="headerlink" href="#structure" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>The passed structure must be a list or a tuple</p></li>
+<li><p>Each entry in the structure must be a dictionary</p></li>
+</ul>
+</div>
+<div class="section" id="required-parameters">
+<h2>Required Parameters<a class="headerlink" href="#required-parameters" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p><strong>table_name</strong> (<em>str</em>): The name of the external table to be created</p></li>
+<li><p><strong>ip_addr</strong> (<em>str</em>): The IP address of the FTP server</p></li>
+<li><p><strong>dir_ptrn</strong> (<em>str</em>): A regular expression identifying the directories that contain the files of interest</p></li>
+<li><p><strong>file_ptrn</strong> (<em>str</em>): A regular expression identifying the files of interest</p></li>
+<li><p><strong>file_ptrn_abbr</strong> (<em>str</em>): A regular expression matching the shortest portion of <em>file_ptrn</em> that can still uniquely identify each file</p></li>
+<li><p><strong>columns</strong> (<em>list</em>, <em>tuple</em>): An ordered list of the desired column names</p></li>
+<li><p><strong>schema</strong> (<em>dict</em>):</p>
+<blockquote>
+<div><ul>
+<li><p>Keys are the column names; amount and labels should match the length and values of <em>columns</em></p></li>
+<li><p>Values are datatypes recognizable by Pandas</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>datetime: <em>list</em>; index 0 is ‘datetime’, index 1 is the associated formatting string</p></li>
+<li><p>Integer columns with NULL values: (<em>list</em>, <em>tuple</em>); index 0 is ‘Int64’, index 1 is the intended Pandas datatype (e.g. ‘int32’, ‘int8’)</p></li>
+<li><p>All others: <em>str</em>; the name of the datatype</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><strong>s3_bucket</strong> (<em>str</em>): the name of the S3 bucket; directory paths in the bucket can be added (e.g. ‘bucket/dir/subdir’)</p></li>
+</ul>
+</div>
+<div class="section" id="optional-parameters">
+<h2>Optional Parameters<a class="headerlink" href="#optional-parameters" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p><strong>mem_cap</strong> (<em>int</em>, default=2 * 10 ** 9): The size in bytes that <em>df_main</em> can occupy in memory before writing. There will be some discrepancy between the value specified and the actual memory used.</p></li>
+<li><p><strong>row_skip</strong> (<em>dict</em>)</p>
+<blockquote>
+<div><ul>
+<li><p>Keys match the <em>file_ptrn_abbr</em> expression</p></li>
+<li><p>Each value is a <em>dict</em> with two keys:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>rownums</strong> ((<em>list</em>, <em>tuple</em>)): Each entry is an integer (row numbers to skip in the file identified by the parent key)</p></li>
+<li><p><strong>rowrepls</strong> ((<em>list</em>, <em>tuple</em>)): Each entry is a list of replacement values for each columns</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><strong>partition</strong> (<em>list</em>, <em>tuple</em>)</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Index 0: A string with the name of the name of the partitions to be created</p></li>
+<li><p>Index 1: The column with values to be used to partition the data</p></li>
+<li><p>Index 2 (optional): If index 1 has type <em>datetime</em>, a string defining the format of the partition values (refer to date.strftime documentation)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div>
+<div class="section" id="example-configuration">
+<h2>Example Configuration<a class="headerlink" href="#example-configuration" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+    <span class="c1"># Partitions, replacing rows, overriding default mem_cap</span>
+    <span class="p">{</span>
+        <span class="s1">&#39;table_name&#39;</span><span class="p">:</span> <span class="s1">&#39;ftp.tc_log&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;mem_cap&#39;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="mi">9</span><span class="p">,</span>
+        <span class="s1">&#39;ip_addr&#39;</span><span class="p">:</span> <span class="s1">&#39;1.2.3.4&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;dir_ptrn&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;.*qtftp.*</span><span class="se">\\</span><span class="s1">\d{6}$&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;file_ptrn&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;file\.name\.\d{6}$&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;file_ptrn_abbr&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;.{6}$&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;row_skip&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;123456&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;rownums&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">999</span><span class="p">],</span>
+                <span class="s1">&#39;rowrepls&#39;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;01/01/2015&quot;</span><span class="p">,</span> <span class="s2">&quot;23:30:00&quot;</span><span class="p">,</span> <span class="s2">&quot;m2003&quot;</span><span class="p">,</span> <span class="s2">&quot;51218&quot;</span><span class="p">,</span> <span class="s2">&quot;Foo&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">]]</span>
+            <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;columns&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;col1&#39;</span><span class="p">,</span> <span class="s1">&#39;col2&#39;</span><span class="p">,</span> <span class="s1">&#39;col3&#39;</span><span class="p">,</span> <span class="s1">&#39;col4&#39;</span><span class="p">,</span> <span class="s1">&#39;col5&#39;</span><span class="p">,</span> <span class="s1">&#39;col6&#39;</span><span class="p">,</span> <span class="s1">&#39;col7&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;schema&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;col1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;datetime&#39;</span><span class="p">,</span> <span class="s1">&#39;%m/</span><span class="si">%d</span><span class="s1">/%Y&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;col2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;datetime&#39;</span><span class="p">,</span> <span class="s1">&#39;%H:%M:%S&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;col3&#39;</span><span class="p">:</span> <span class="s1">&#39;object&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;col4&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Int64&#39;</span><span class="p">,</span> <span class="s1">&#39;int32&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;col5&#39;</span><span class="p">:</span> <span class="s1">&#39;object&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;col6&#39;</span><span class="p">:</span> <span class="s1">&#39;int8&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;col7&#39;</span><span class="p">:</span> <span class="s1">&#39;object&#39;</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;s3_bucket&#39;</span><span class="p">:</span> <span class="s1">&#39;bucket/dir/subdir&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;partition&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;event_year&#39;</span><span class="p">,</span> <span class="s1">&#39;col1&#39;</span><span class="p">,</span> <span class="s1">&#39;%Y&#39;</span><span class="p">]</span>
+    <span class="p">},</span>
+    <span class="c1"># No partitions, no rows to skip, default mem_cap</span>
+    <span class="p">{</span>
+        <span class="s1">&#39;table_name&#39;</span><span class="p">:</span> <span class="s1">&#39;ftp.train_event&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;ip_addr&#39;</span><span class="p">:</span> <span class="s1">&#39;5.6.7.8&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;dir_ptrn&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;.*train.*</span><span class="se">\\</span><span class="s1">\d{6}$&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;file_ptrn&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;event\.\d{6}$&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;file_ptrn_abbr&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;.{6}$&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;columns&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;schema&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;datetime&#39;</span><span class="p">,</span> <span class="s1">&#39;%m/</span><span class="si">%d</span><span class="s1">/%Y&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;datetime&#39;</span><span class="p">,</span> <span class="s1">&#39;%H:%M:%S&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;object&#39;</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;s3_bucket&#39;</span><span class="p">:</span> <span class="s1">&#39;bucket&#39;</span>
+    <span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

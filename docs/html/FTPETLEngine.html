@@ -1,0 +1,746 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>FTPETLEngine package &mdash; FTPETLEngine 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Welcome to FTPETLEngine’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FTPETLEngine
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">FTPETLEngine package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#files">Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-FTPETLEngine.FTPETLEngine">FTPETLEngine module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-FTPETLEngine.FTPWalk">FTPWalk module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#input-configuration">Input Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#structure">Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#required-parameters">Required Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#optional-parameters">Optional Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-configuration">Example Configuration</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FTPETLEngine</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>FTPETLEngine package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/FTPETLEngine.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="ftpetlengine-package">
+<h1>FTPETLEngine package<a class="headerlink" href="#ftpetlengine-package" title="Permalink to this headline">¶</a></h1>
+<p>Connects to an FTP server and identifies files to ETL based on input regular expressions. These files are concatenated and exported to an S3 bucket as snappy-compressed parquet files using parameters in a passed configuration. Partition creation functionality is included. Export operations will create a fairly uniform file size distribution.</p>
+<div class="section" id="files">
+<h2>Files<a class="headerlink" href="#files" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><em>FTPETLEngine.py</em>: Contains the functions that perform the ETL process</p></li>
+<li><p><em>FTPWalk.py</em>: Houses the methods used to scan an FTP server</p></li>
+<li><p><em>logger.py</em>: Sets up the package logging instance</p></li>
+</ul>
+</div>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> FTPETLEngine
+python setup.py install
+</pre></div>
+</div>
+</div>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">etl_params</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">{</span>
+        <span class="c1"># Configuration structure</span>
+    <span class="p">}</span>
+<span class="p">]</span>
+
+<span class="k">for</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">etl_params</span><span class="p">:</span>
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">FTPETLEngine</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+    <span class="n">engine</span><span class="o">.</span><span class="n">connect_s3</span><span class="p">()</span>
+    <span class="n">engine</span><span class="o">.</span><span class="n">etl</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="module-FTPETLEngine.FTPETLEngine">
+<span id="ftpetlengine-module"></span><h2>FTPETLEngine module<a class="headerlink" href="#module-FTPETLEngine.FTPETLEngine" title="Permalink to this headline">¶</a></h2>
+<p>Creates a data pipeline between an FTP server and S3 instance; files on the
+server are concatenated and written to the S3 instance as Snappy-compressed
+Parquet files</p>
+<dl class="field-list simple">
+<dt class="field-odd">class EngineConfig</dt>
+<dd class="field-odd"><p>A wrapper for the input configuration</p>
+</dd>
+<dt class="field-even">class FTPETLEngine</dt>
+<dd class="field-even"><p>Performs the ETL process</p>
+</dd>
+</dl>
+<dl class="class">
+<dt id="FTPETLEngine.FTPETLEngine.EngineConfig">
+<em class="property">class </em><code class="descclassname">FTPETLEngine.FTPETLEngine.</code><code class="descname">EngineConfig</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#EngineConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.EngineConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Stores the keys and values of the input configuration dictionary in
+attributes for ease of use, then checks the contents of each attribute for
+type and structure validity. Refer to input config structure documentation
+for allowable parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attribute mem_cap</dt>
+<dd class="field-odd"><p>Threshold in bytes; a portion of
+main_df is written
+if the threshold is exceeded</p>
+</dd>
+<dt class="field-even">Method _validate</dt>
+<dd class="field-even"><p>Performs internal integrity checks on the
+input configuration parameters</p>
+</dd>
+<dt class="field-odd">Method _validate_schema</dt>
+<dd class="field-odd"><p>Performs internal integrity checks on the
+input schema parameters</p>
+</dd>
+<dt class="field-even">Method _validate_row_skip</dt>
+<dd class="field-even"><p>Performs internal integrity checks on the
+input row skip parameters</p>
+</dd>
+<dt class="field-odd">Method _validate_partition</dt>
+<dd class="field-odd"><p>Performs internal integrity checks on the
+input partition parameters</p>
+</dd>
+<dt class="field-even">Staticmethod key_check</dt>
+<dd class="field-even"><p>Ensures a parameter is present</p>
+</dd>
+<dt class="field-odd">Staticmethod type_check</dt>
+<dd class="field-odd"><p>Ensures a parameter is the proper type</p>
+</dd>
+<dt class="field-even">Staticmethod len_check</dt>
+<dd class="field-even"><p>Ensures an iterable parameter is the proper
+length</p>
+</dd>
+<dt class="field-odd">Staticmethod re_check</dt>
+<dd class="field-odd"><p>Ensures a parameter matches the given
+pattern</p>
+</dd>
+<dt class="field-even">Staticmethod iter_compare</dt>
+<dd class="field-even"><p>Ensures the contents of two iterables match</p>
+</dd>
+</dl>
+<dl class="staticmethod">
+<dt id="FTPETLEngine.FTPETLEngine.EngineConfig.iter_compare">
+<em class="property">static </em><code class="descname">iter_compare</code><span class="sig-paren">(</span><em>mode</em>, <em>obj1</em>, <em>obj2</em>, <em>name_obj1</em>, <em>name_obj2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#EngineConfig.iter_compare"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.EngineConfig.iter_compare" title="Permalink to this definition">¶</a></dt>
+<dd><p>Customized error handling: compare either the length or contents of two
+iterables</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mode</strong> (<em>str</em>) – ‘len’ or ‘val’ (determines what is compared)</p></li>
+<li><p><strong>obj1</strong> – An iterable</p></li>
+<li><p><strong>obj2</strong> – An iterable</p></li>
+<li><p><strong>name_obj1</strong> (<em>str</em>) – Name of the first offending object to print when
+raising an error</p></li>
+<li><p><strong>name_obj2</strong> (<em>str</em>) – Name of the second offending object to print when
+raising an error</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – Raises error if the check fails</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="FTPETLEngine.FTPETLEngine.EngineConfig.key_check">
+<em class="property">static </em><code class="descname">key_check</code><span class="sig-paren">(</span><em>key</em>, <em>obj</em>, <em>obj_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#EngineConfig.key_check"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.EngineConfig.key_check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Customized error handling: simple dictionary lookup check</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> (<em>str</em>) – Name of a key to lookup in obj</p></li>
+<li><p><strong>obj</strong> (<em>dict</em>) – A dictionary</p></li>
+<li><p><strong>obj_name</strong> (<em>str</em>) – Name of the offending object to print when raising
+an error</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>KeyError</strong> – Raises error if the check fails</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="FTPETLEngine.FTPETLEngine.EngineConfig.len_check">
+<em class="property">static </em><code class="descname">len_check</code><span class="sig-paren">(</span><em>obj</em>, <em>req_len</em>, <em>obj_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#EngineConfig.len_check"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.EngineConfig.len_check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Customized error handling: simple equality check</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – An iterable</p></li>
+<li><p><strong>req_len</strong> (<em>(</em><em>int</em><em>, </em><em>tuple</em><em>, </em><em>list</em><em>)</em>) – Length(s) to check against</p></li>
+<li><p><strong>obj_name</strong> – Name of the offending object to print when raising
+an error</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – Raises error if the check fails</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="FTPETLEngine.FTPETLEngine.EngineConfig.re_check">
+<em class="property">static </em><code class="descname">re_check</code><span class="sig-paren">(</span><em>obj</em>, <em>ptrn</em>, <em>obj_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#EngineConfig.re_check"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.EngineConfig.re_check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Customized error handling: regex match check</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<em>str</em>) – A string</p></li>
+<li><p><strong>ptrn</strong> (<em>str</em>) – A regular expression</p></li>
+<li><p><strong>obj_name</strong> – Name of the offending object to print when raising
+an error</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – Raises error if the check fails</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="FTPETLEngine.FTPETLEngine.EngineConfig.type_check">
+<em class="property">static </em><code class="descname">type_check</code><span class="sig-paren">(</span><em>obj</em>, <em>req_type</em>, <em>obj_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#EngineConfig.type_check"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.EngineConfig.type_check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Customized error handling: simple type check</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – Any object</p></li>
+<li><p><strong>req_type</strong> (<em>type</em>) – Type to check against</p></li>
+<li><p><strong>obj_name</strong> – Name of the offending object to print when raising
+an error</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>TypeError</strong> – Raises error if the check fails</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="FTPETLEngine.FTPETLEngine.FTPETLEngine">
+<em class="property">class </em><code class="descclassname">FTPETLEngine.FTPETLEngine.</code><code class="descname">FTPETLEngine</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#FTPETLEngine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.FTPETLEngine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Houses methods needed to import files from an FTP server and write them
+using an input schema to an S3 bucket as Snappy-compressed Parquet files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attribute config</dt>
+<dd class="field-odd"><p>An EngineConfig instance;
+converted from the input dictionary when
+initializing this class</p>
+</dd>
+<dt class="field-even">Attribute part_mode</dt>
+<dd class="field-even"><p>A string; value is determined by
+config.partition</p>
+</dd>
+<dt class="field-odd">Attribute df_main</dt>
+<dd class="field-odd"><p>A pandas.DataFrame instance; initially
+empty, accumulates the contents of the
+imported files</p>
+</dd>
+<dt class="field-even">Attribute mem</dt>
+<dd class="field-even"><p>An integer; tracks the size of
+df_main in memory</p>
+</dd>
+<dt class="field-odd">Attribute counter</dt>
+<dd class="field-odd"><p>An integer; initially 0, increments if
+filenames
+will be duplicated when writing data</p>
+</dd>
+<dt class="field-even">Attribute rows</dt>
+<dd class="field-even"><p>An integer; tracks how many rows have been
+written</p>
+</dd>
+<dt class="field-odd">Attribute s3fs_inst</dt>
+<dd class="field-odd"><p>An s3fs.S3FileSystem instance</p>
+</dd>
+<dt class="field-even">Method etl</dt>
+<dd class="field-even"><p>ETL workhorse method</p>
+</dd>
+<dt class="field-odd">Method connect_s3</dt>
+<dd class="field-odd"><p>Sets s3fs_inst</p>
+</dd>
+<dt class="field-even">Method import_file</dt>
+<dd class="field-even"><p>Appends file contents to df_main</p>
+</dd>
+<dt class="field-odd">Method chunk_write</dt>
+<dd class="field-odd"><p>Write a portion of df_main contents
+to a Snappy-compressed Parquet file</p>
+</dd>
+<dt class="field-even">Staticmethod gen_pa_schema</dt>
+<dd class="field-even"><p>Makes the input schema Pyarrow-compatible</p>
+</dd>
+<dt class="field-odd">Staticmethod format_cols</dt>
+<dd class="field-odd"><p>Applies a schema to a Pandas dataframe</p>
+</dd>
+<dt class="field-even">Staticmethod write_parquet</dt>
+<dd class="field-even"><p>Writes a Pandas dataframe to a
+Snappy-compressed Parquet file</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="FTPETLEngine.FTPETLEngine.FTPETLEngine.chunk_write">
+<code class="descname">chunk_write</code><span class="sig-paren">(</span><em>_source</em>, <em>_mode</em>, <em>_pa_schema</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#FTPETLEngine.chunk_write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.FTPETLEngine.chunk_write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract a chunk of required size and write it to an S3 bucket as a
+Snappy-compressed Parquet file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>_source</strong> (<em>str</em>) – One of [‘oversize’, ‘multipart’, ‘residue’], passed
+from etl</p></li>
+<li><p><strong>_mode</strong> (<em>str</em>) – One of [‘writeAll’, ‘leaveRem’], passed from etl</p></li>
+<li><p><strong>_pa_schema</strong> (<em>pyarrow.Schema</em>) – Output from gen_pa_schema, passed from etl</p></li>
+</ul>
+</dd>
+<dt class="field-even">Key head</dt>
+<dd class="field-even"><p>A str; first source file contained in df_main</p>
+</dd>
+<dt class="field-odd">Key tail</dt>
+<dd class="field-odd"><p>A str; last source file contained in df_main</p>
+</dd>
+<dt class="field-even">Key part_val</dt>
+<dd class="field-even"><p>A str; the partition name to write</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="FTPETLEngine.FTPETLEngine.FTPETLEngine.connect_s3">
+<code class="descname">connect_s3</code><span class="sig-paren">(</span><em>path='~/.aws/.credentials'</em>, <em>use_ssl=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#FTPETLEngine.connect_s3"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.FTPETLEngine.connect_s3" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a connection to the S3 buckets available to an AWS account</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – Path to AWS credentials file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="FTPETLEngine.FTPETLEngine.FTPETLEngine.etl">
+<code class="descname">etl</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#FTPETLEngine.etl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.FTPETLEngine.etl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect to the FTP server and import each file by appending its
+contents to df_main, then write a portion of the accumulated data
+to the S3 instance when either multiple partitions are present or the
+data exceeds the allowed memory capacity</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="FTPETLEngine.FTPETLEngine.FTPETLEngine.format_cols">
+<em class="property">static </em><code class="descname">format_cols</code><span class="sig-paren">(</span><em>df</em>, <em>schema</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#FTPETLEngine.format_cols"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.FTPETLEngine.format_cols" title="Permalink to this definition">¶</a></dt>
+<dd><p>Format the columns of a Pandas dataframe in-place according to the
+passed schema (as a dict, not a pyarrow.Schema instance)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pandas.DataFrame</em>) – Pandas dataframe to process</p></li>
+<li><p><strong>schema</strong> (<em>dict</em>) – Refer to input config structure documentation</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="FTPETLEngine.FTPETLEngine.FTPETLEngine.gen_pa_schema">
+<em class="property">static </em><code class="descname">gen_pa_schema</code><span class="sig-paren">(</span><em>schema</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#FTPETLEngine.gen_pa_schema"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.FTPETLEngine.gen_pa_schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a schema to one compatible with Pyarrow</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>schema</strong> (<em>dict</em>) – Refer to input config structure documentation</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A pyarrow.Schema instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="FTPETLEngine.FTPETLEngine.FTPETLEngine.import_file">
+<code class="descname">import_file</code><span class="sig-paren">(</span><em>file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#FTPETLEngine.import_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.FTPETLEngine.import_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read the passed filename and append the contents to df_main</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>file</strong> (<em>str</em>) – File on an FTP server to import</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="FTPETLEngine.FTPETLEngine.FTPETLEngine.write_parquet">
+<em class="property">static </em><code class="descname">write_parquet</code><span class="sig-paren">(</span><em>df</em>, <em>pa_schema</em>, <em>filename</em>, <em>s3fs_inst</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPETLEngine.html#FTPETLEngine.write_parquet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPETLEngine.FTPETLEngine.write_parquet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use Pyarrow and the passed schema to write a Pandas dataframe to a
+Snappy-compressed Parquet file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pandas.DataFrame</em>) – Pandas dataframe to write to a Parquet file</p></li>
+<li><p><strong>filename</strong> (<em>str</em>) – File path to write to in an S3 bucket</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-FTPETLEngine.FTPWalk">
+<span id="ftpwalk-module"></span><h2>FTPWalk module<a class="headerlink" href="#module-FTPETLEngine.FTPWalk" title="Permalink to this headline">¶</a></h2>
+<p>Connects to an FTP server and scans the contents</p>
+<dl class="class">
+<dt id="FTPETLEngine.FTPWalk.FTPWalk">
+<em class="property">class </em><code class="descclassname">FTPETLEngine.FTPWalk.</code><code class="descname">FTPWalk</code><span class="sig-paren">(</span><em>connection</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPWalk.html#FTPWalk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPWalk.FTPWalk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Contains methods for traversing an FTP server using a BFS algorithm
+Source: <a class="reference external" href="https://stackoverflow.com/a/43799926">https://stackoverflow.com/a/43799926</a></p>
+<dl class="method">
+<dt id="FTPETLEngine.FTPWalk.FTPWalk.get_files">
+<code class="descname">get_files</code><span class="sig-paren">(</span><em>dir_ptrn=''</em>, <em>file_ptrn=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPWalk.html#FTPWalk.get_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPWalk.FTPWalk.get_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a sorted list of files on the FTP server; directory and file
+names match the specified patterns</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dir_ptrn</strong> (<em>str</em>) – Regular expression identifying directories that
+contain relevant files</p></li>
+<li><p><strong>file_ptrn</strong> (<em>str</em>) – Regular expression identifying relevant files</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of strings, each of which is the full path
+to a specific file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="FTPETLEngine.FTPWalk.FTPWalk.listdir">
+<code class="descname">listdir</code><span class="sig-paren">(</span><em>_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPWalk.html#FTPWalk.listdir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPWalk.FTPWalk.listdir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a file-directory tree given a path</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>_path</strong> – Inherited from walk</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Lists of directory and file names within _path</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="FTPETLEngine.FTPWalk.FTPWalk.walk">
+<code class="descname">walk</code><span class="sig-paren">(</span><em>path='/'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/FTPETLEngine/FTPWalk.html#FTPWalk.walk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#FTPETLEngine.FTPWalk.FTPWalk.walk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Walks through an FTP server’s directory tree using a BFS algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> – Directory in which to create a tree</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="input-configuration">
+<h1>Input Configuration<a class="headerlink" href="#input-configuration" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="structure">
+<h2>Structure<a class="headerlink" href="#structure" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>The passed structure must be a list or a tuple</p></li>
+<li><p>Each entry in the structure must be a dictionary</p></li>
+</ul>
+</div>
+<div class="section" id="required-parameters">
+<h2>Required Parameters<a class="headerlink" href="#required-parameters" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p><strong>table_name</strong> (<em>str</em>): The name of the external table to be created</p></li>
+<li><p><strong>ip_addr</strong> (<em>str</em>): The IP address of the FTP server</p></li>
+<li><p><strong>dir_ptrn</strong> (<em>str</em>): A regular expression identifying the directories that contain the files of interest</p></li>
+<li><p><strong>file_ptrn</strong> (<em>str</em>): A regular expression identifying the files of interest</p></li>
+<li><p><strong>file_ptrn_abbr</strong> (<em>str</em>): A regular expression matching the shortest portion of <em>file_ptrn</em> that can still uniquely identify each file</p></li>
+<li><p><strong>columns</strong> (<em>list</em>, <em>tuple</em>): An ordered list of the desired column names</p></li>
+<li><p><strong>schema</strong> (<em>dict</em>):</p>
+<blockquote>
+<div><ul>
+<li><p>Keys are the column names; amount and labels should match the length and values of <em>columns</em></p></li>
+<li><p>Values are datatypes recognizable by Pandas</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>datetime: <em>list</em>; index 0 is ‘datetime’, index 1 is the associated formatting string</p></li>
+<li><p>Integer columns with NULL values: (<em>list</em>, <em>tuple</em>); index 0 is ‘Int64’, index 1 is the intended Pandas datatype (e.g. ‘int32’, ‘int8’)</p></li>
+<li><p>All others: <em>str</em>; the name of the datatype</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><strong>s3_bucket</strong> (<em>str</em>): the name of the S3 bucket; directory paths in the bucket can be added (e.g. ‘bucket/dir/subdir’)</p></li>
+</ul>
+</div>
+<div class="section" id="optional-parameters">
+<h2>Optional Parameters<a class="headerlink" href="#optional-parameters" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p><strong>mem_cap</strong> (<em>int</em>, default=2 * 10 ** 9): The size in bytes that <em>df_main</em> can occupy in memory before writing. There will be some discrepancy between the value specified and the actual memory used.</p></li>
+<li><p><strong>row_skip</strong> (<em>dict</em>)</p>
+<blockquote>
+<div><ul>
+<li><p>Keys match the <em>file_ptrn_abbr</em> expression</p></li>
+<li><p>Each value is a <em>dict</em> with two keys:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>rownums</strong> ((<em>list</em>, <em>tuple</em>)): Each entry is an integer (row numbers to skip in the file identified by the parent key)</p></li>
+<li><p><strong>rowrepls</strong> ((<em>list</em>, <em>tuple</em>)): Each entry is a list of replacement values for each columns</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><strong>partition</strong> (<em>list</em>, <em>tuple</em>)</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Index 0: A string with the name of the name of the partitions to be created</p></li>
+<li><p>Index 1: The column with values to be used to partition the data</p></li>
+<li><p>Index 2 (optional): If index 1 has type <em>datetime</em>, a string defining the format of the partition values (refer to date.strftime documentation)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div>
+<div class="section" id="example-configuration">
+<h2>Example Configuration<a class="headerlink" href="#example-configuration" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+    <span class="c1"># Partitions, replacing rows, overriding default mem_cap</span>
+    <span class="p">{</span>
+        <span class="s1">&#39;table_name&#39;</span><span class="p">:</span> <span class="s1">&#39;ftp.tc_log&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;mem_cap&#39;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="mi">9</span><span class="p">,</span>
+        <span class="s1">&#39;ip_addr&#39;</span><span class="p">:</span> <span class="s1">&#39;1.2.3.4&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;dir_ptrn&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;.*qtftp.*</span><span class="se">\\</span><span class="s1">\d{6}$&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;file_ptrn&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;file\.name\.\d{6}$&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;file_ptrn_abbr&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;.{6}$&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;row_skip&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;123456&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;rownums&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">999</span><span class="p">],</span>
+                <span class="s1">&#39;rowrepls&#39;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;01/01/2015&quot;</span><span class="p">,</span> <span class="s2">&quot;23:30:00&quot;</span><span class="p">,</span> <span class="s2">&quot;m2003&quot;</span><span class="p">,</span> <span class="s2">&quot;51218&quot;</span><span class="p">,</span> <span class="s2">&quot;Foo&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">]]</span>
+            <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;columns&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;col1&#39;</span><span class="p">,</span> <span class="s1">&#39;col2&#39;</span><span class="p">,</span> <span class="s1">&#39;col3&#39;</span><span class="p">,</span> <span class="s1">&#39;col4&#39;</span><span class="p">,</span> <span class="s1">&#39;col5&#39;</span><span class="p">,</span> <span class="s1">&#39;col6&#39;</span><span class="p">,</span> <span class="s1">&#39;col7&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;schema&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;col1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;datetime&#39;</span><span class="p">,</span> <span class="s1">&#39;%m/</span><span class="si">%d</span><span class="s1">/%Y&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;col2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;datetime&#39;</span><span class="p">,</span> <span class="s1">&#39;%H:%M:%S&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;col3&#39;</span><span class="p">:</span> <span class="s1">&#39;object&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;col4&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Int64&#39;</span><span class="p">,</span> <span class="s1">&#39;int32&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;col5&#39;</span><span class="p">:</span> <span class="s1">&#39;object&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;col6&#39;</span><span class="p">:</span> <span class="s1">&#39;int8&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;col7&#39;</span><span class="p">:</span> <span class="s1">&#39;object&#39;</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;s3_bucket&#39;</span><span class="p">:</span> <span class="s1">&#39;bucket/dir/subdir&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;partition&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;event_year&#39;</span><span class="p">,</span> <span class="s1">&#39;col1&#39;</span><span class="p">,</span> <span class="s1">&#39;%Y&#39;</span><span class="p">]</span>
+    <span class="p">},</span>
+    <span class="c1"># No partitions, no rows to skip, default mem_cap</span>
+    <span class="p">{</span>
+        <span class="s1">&#39;table_name&#39;</span><span class="p">:</span> <span class="s1">&#39;ftp.train_event&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;ip_addr&#39;</span><span class="p">:</span> <span class="s1">&#39;5.6.7.8&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;dir_ptrn&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;.*train.*</span><span class="se">\\</span><span class="s1">\d{6}$&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;file_ptrn&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;event\.\d{6}$&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;file_ptrn_abbr&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;.{6}$&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;columns&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;schema&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;datetime&#39;</span><span class="p">,</span> <span class="s1">&#39;%m/</span><span class="si">%d</span><span class="s1">/%Y&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;datetime&#39;</span><span class="p">,</span> <span class="s1">&#39;%H:%M:%S&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;object&#39;</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;s3_bucket&#39;</span><span class="p">:</span> <span class="s1">&#39;bucket&#39;</span>
+    <span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to FTPETLEngine’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

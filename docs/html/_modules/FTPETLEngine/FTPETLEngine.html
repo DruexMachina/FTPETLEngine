@@ -1,0 +1,784 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>FTPETLEngine.FTPETLEngine &mdash; FTPETLEngine 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> FTPETLEngine
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../FTPETLEngine.html">FTPETLEngine package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FTPETLEngine.html#input-configuration">Input Configuration</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">FTPETLEngine</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>FTPETLEngine.FTPETLEngine</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for FTPETLEngine.FTPETLEngine</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Creates a data pipeline between an FTP server and S3 instance; files on the</span>
+<span class="sd">server are concatenated and written to the S3 instance as Snappy-compressed</span>
+<span class="sd">Parquet files</span>
+
+<span class="sd">:class EngineConfig:    A wrapper for the input configuration</span>
+<span class="sd">:class FTPETLEngine:    Performs the ETL process</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">ftplib</span>
+<span class="kn">import</span> <span class="nn">gc</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">pq</span>
+<span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
+<span class="kn">import</span> <span class="nn">s3fs</span>
+
+<span class="kn">from</span> <span class="nn">.logger</span> <span class="k">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">.FTPWalk</span> <span class="k">import</span> <span class="n">FTPWalk</span>
+
+
+<div class="viewcode-block" id="EngineConfig"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.EngineConfig">[docs]</a><span class="k">class</span> <span class="nc">EngineConfig</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stores the keys and values of the input configuration dictionary in</span>
+<span class="sd">    attributes for ease of use, then checks the contents of each attribute for</span>
+<span class="sd">    type and structure validity. Refer to input config structure documentation</span>
+<span class="sd">    for allowable parameters.</span>
+
+<span class="sd">    :attribute mem_cap:             Threshold in bytes; a portion of</span>
+<span class="sd">                                    main_df is written</span>
+<span class="sd">                                    if the threshold is exceeded</span>
+<span class="sd">    :method _validate:              Performs internal integrity checks on the</span>
+<span class="sd">                                    input configuration parameters</span>
+<span class="sd">    :method _validate_schema:       Performs internal integrity checks on the</span>
+<span class="sd">                                    input schema parameters</span>
+<span class="sd">    :method _validate_row_skip:     Performs internal integrity checks on the</span>
+<span class="sd">                                    input row skip parameters</span>
+<span class="sd">    :method _validate_partition:    Performs internal integrity checks on the</span>
+<span class="sd">                                    input partition parameters</span>
+<span class="sd">    :staticmethod key_check:        Ensures a parameter is present</span>
+<span class="sd">    :staticmethod type_check:       Ensures a parameter is the proper type</span>
+<span class="sd">    :staticmethod len_check:        Ensures an iterable parameter is the proper</span>
+<span class="sd">                                    length</span>
+<span class="sd">    :staticmethod re_check:         Ensures a parameter matches the given</span>
+<span class="sd">                                    pattern</span>
+<span class="sd">    :staticmethod iter_compare:     Ensures the contents of two iterables match</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize a logging instance, store the contents of the passed config</span>
+<span class="sd">        in class attributes, then validate the attribute contents</span>
+
+<span class="sd">        :param config:  Refer to input config structure documentation</span>
+<span class="sd">        :type config:   dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="s1">&#39;config&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mem_cap</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="mi">9</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check that the input config has the correct structure&quot;&quot;&quot;</span>
+
+        <span class="n">config_reqs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;ip_addr&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="s1">&#39;dir_ptrn&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="s1">&#39;file_ptrn&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="s1">&#39;file_ptrn_abbr&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="s1">&#39;columns&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
+            <span class="s1">&#39;schema&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+            <span class="s1">&#39;s3_bucket&#39;</span><span class="p">:</span> <span class="nb">str</span>
+        <span class="p">}</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Validating config parameters&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">req_param</span><span class="p">,</span> <span class="n">req_type</span> <span class="ow">in</span> <span class="n">config_reqs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">key_check</span><span class="p">(</span><span class="n">req_param</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="s1">&#39;config&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req_param</span><span class="p">),</span> <span class="n">req_type</span><span class="p">,</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{req_param}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Validating schema parameters&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_schema</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iter_compare</span><span class="p">(</span>
+            <span class="s1">&#39;val&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="s1">&#39;schema&#39;</span><span class="p">,</span> <span class="s1">&#39;columns&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;row_skip&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Validating row_skip parameters&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_row_skip</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="s1">&#39;partition&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Validating partition parameters&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_partition</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem_cap</span> <span class="o">&lt;</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s1">&#39;mem_cap is </span><span class="si">%i</span><span class="s1">; a minimum size of 5 * 10 ** 8 is recommended&#39;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mem_cap</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check that the input schema has the correct structure&quot;&quot;&quot;</span>
+
+        <span class="n">config_reqs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;entry&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
+            <span class="s1">&#39;length&#39;</span><span class="p">:</span> <span class="mi">2</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">type_def</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span>
+                <span class="n">type_def</span><span class="p">,</span> <span class="n">config_reqs</span><span class="p">[</span><span class="s1">&#39;entry&#39;</span><span class="p">],</span> <span class="n">f</span><span class="s2">&quot;schema[</span><span class="se">\&#39;</span><span class="si">{col}</span><span class="se">\&#39;</span><span class="s2">]&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">type_def</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">len_check</span><span class="p">(</span><span class="n">type_def</span><span class="p">,</span> <span class="n">config_reqs</span><span class="p">[</span><span class="s1">&#39;length&#39;</span><span class="p">],</span>
+                               <span class="n">f</span><span class="s2">&quot;schema[</span><span class="se">\&#39;</span><span class="si">{col}</span><span class="se">\&#39;</span><span class="s2">]&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">type_def</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">f</span><span class="s2">&quot;schema[</span><span class="se">\&#39;</span><span class="si">{col}</span><span class="se">\&#39;</span><span class="s2">][</span><span class="si">{i}</span><span class="s2">]&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_row_skip</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check that row skip parameters have the correct structure&quot;&quot;&quot;</span>
+
+        <span class="n">config_reqs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;parent&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+            <span class="s1">&#39;entry&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+            <span class="s1">&#39;req_params&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;rownums&#39;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s1">&#39;parent&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
+                    <span class="s1">&#39;entry&#39;</span><span class="p">:</span> <span class="nb">int</span>
+                <span class="p">},</span>
+                <span class="s1">&#39;rowrepls&#39;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s1">&#39;parent&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
+                    <span class="s1">&#39;entry&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">row_skip</span><span class="p">,</span> <span class="n">config_reqs</span><span class="p">[</span><span class="s1">&#39;parent&#39;</span><span class="p">],</span> <span class="s1">&#39;row_skip&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">file</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">row_skip</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">re_check</span><span class="p">(</span>
+                <span class="n">file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_ptrn_abbr</span><span class="p">,</span> <span class="n">f</span><span class="s2">&quot;row_skip key </span><span class="se">\&#39;</span><span class="si">{file}</span><span class="se">\&#39;</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">req_param</span> <span class="ow">in</span> <span class="n">config_reqs</span><span class="p">[</span><span class="s1">&#39;req_params&#39;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">key_check</span><span class="p">(</span><span class="n">req_param</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">f</span><span class="s2">&quot;row_skip[</span><span class="si">{file}</span><span class="s2">]&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span>
+                    <span class="n">params</span><span class="p">[</span><span class="n">req_param</span><span class="p">],</span>
+                    <span class="n">config_reqs</span><span class="p">[</span><span class="s1">&#39;req_params&#39;</span><span class="p">][</span><span class="n">req_param</span><span class="p">][</span><span class="s1">&#39;parent&#39;</span><span class="p">],</span>
+                    <span class="n">f</span><span class="s2">&quot;row_skip[</span><span class="si">{file}</span><span class="s2">][</span><span class="se">\&#39;</span><span class="si">{req_param}</span><span class="se">\&#39;</span><span class="s2">]&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="n">req_param</span><span class="p">]):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span>
+                        <span class="n">entry</span><span class="p">,</span>
+                        <span class="n">config_reqs</span><span class="p">[</span><span class="s1">&#39;req_params&#39;</span><span class="p">][</span><span class="n">req_param</span><span class="p">][</span><span class="s1">&#39;entry&#39;</span><span class="p">],</span>
+                        <span class="n">f</span><span class="s2">&quot;row_skip[</span><span class="si">{file}</span><span class="s2">][</span><span class="se">\&#39;</span><span class="si">{req_param}</span><span class="se">\&#39;</span><span class="s2">][</span><span class="si">{i}</span><span class="s2">]&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iter_compare</span><span class="p">(</span><span class="s1">&#39;len&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;rownums&#39;</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;rowrepls&#39;</span><span class="p">],</span>
+                              <span class="n">f</span><span class="s2">&quot;row_skip[</span><span class="si">{file}</span><span class="s2">][</span><span class="se">\&#39;</span><span class="s2">rownums</span><span class="se">\&#39;</span><span class="s2">]&quot;</span><span class="p">,</span>
+                              <span class="n">f</span><span class="s2">&quot;row_skip[</span><span class="si">{file}</span><span class="s2">][</span><span class="se">\&#39;</span><span class="s2">rowrepls</span><span class="se">\&#39;</span><span class="s2">]&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_partition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check that the partition parameters have the correct structure&quot;&quot;&quot;</span>
+
+        <span class="n">config_reqs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;parent&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
+            <span class="s1">&#39;entry&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="s1">&#39;length&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">,</span> <span class="n">config_reqs</span><span class="p">[</span><span class="s1">&#39;parent&#39;</span><span class="p">],</span> <span class="s1">&#39;partition&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">len_check</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">,</span> <span class="n">config_reqs</span><span class="p">[</span><span class="s1">&#39;length&#39;</span><span class="p">],</span> <span class="s1">&#39;partition&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">config_reqs</span><span class="p">[</span><span class="s1">&#39;entry&#39;</span><span class="p">],</span> <span class="n">f</span><span class="s2">&quot;partition[</span><span class="si">{i}</span><span class="s2">]&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EngineConfig.key_check"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.EngineConfig.key_check">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">key_check</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">obj_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Customized error handling: simple dictionary lookup check</span>
+
+<span class="sd">        :param key:         Name of a key to lookup in obj</span>
+<span class="sd">        :type key:          str</span>
+<span class="sd">        :param obj:         A dictionary</span>
+<span class="sd">        :type obj:          dict</span>
+<span class="sd">        :param obj_name:    Name of the offending object to print when raising</span>
+<span class="sd">                            an error</span>
+<span class="sd">        :type obj_name:     str</span>
+<span class="sd">        :raises KeyError:   Raises error if the check fails</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;config: </span><span class="si">{key}</span><span class="s2"> not in </span><span class="si">{obj_name}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EngineConfig.type_check"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.EngineConfig.type_check">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">type_check</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">req_type</span><span class="p">,</span> <span class="n">obj_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Customized error handling: simple type check</span>
+
+<span class="sd">        :param obj:         Any object</span>
+<span class="sd">        :param req_type:    Type to check against</span>
+<span class="sd">        :type req_type:     type</span>
+<span class="sd">        :param obj_name:    Name of the offending object to print when raising</span>
+<span class="sd">                            an error</span>
+<span class="sd">        :raises TypeError:  Raises error if the check fails</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">req_type</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;config: </span><span class="si">{obj_name}</span><span class="s2"> must be a {repr(req_type)}&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EngineConfig.len_check"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.EngineConfig.len_check">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">len_check</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">req_len</span><span class="p">,</span> <span class="n">obj_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Customized error handling: simple equality check</span>
+
+<span class="sd">        :param obj:         An iterable</span>
+<span class="sd">        :param req_len:     Length(s) to check against</span>
+<span class="sd">        :type req_len:      (int, tuple, list)</span>
+<span class="sd">        :param obj_name:    Name of the offending object to print when raising</span>
+<span class="sd">                            an error</span>
+<span class="sd">        :raises ValueError: Raises error if the check fails</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">req_len</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">req_len</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="n">f</span><span class="s2">&quot;config: </span><span class="si">{obj_name}</span><span class="s2"> must have length </span><span class="si">{req_len}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="o">!=</span> <span class="n">req_len</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="n">f</span><span class="s2">&quot;config: </span><span class="si">{obj_name}</span><span class="s2"> must have length </span><span class="si">{req_len}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EngineConfig.re_check"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.EngineConfig.re_check">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">re_check</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">ptrn</span><span class="p">,</span> <span class="n">obj_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Customized error handling: regex match check</span>
+
+<span class="sd">        :param obj:         A string</span>
+<span class="sd">        :type obj:          str</span>
+<span class="sd">        :param ptrn:        A regular expression</span>
+<span class="sd">        :type ptrn:         str</span>
+<span class="sd">        :param obj_name:    Name of the offending object to print when raising</span>
+<span class="sd">                            an error</span>
+<span class="sd">        :raises ValueError: Raises error if the check fails</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">ptrn</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">f</span><span class="s2">&quot;config: </span><span class="si">{obj_name}</span><span class="s2"> doesn&#39;t match pattern </span><span class="si">{ptrn}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EngineConfig.iter_compare"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.EngineConfig.iter_compare">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">iter_compare</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="n">obj1</span><span class="p">,</span> <span class="n">obj2</span><span class="p">,</span> <span class="n">name_obj1</span><span class="p">,</span> <span class="n">name_obj2</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Customized error handling: compare either the length or contents of two</span>
+<span class="sd">        iterables</span>
+
+<span class="sd">        :param mode:        &#39;len&#39; or &#39;val&#39; (determines what is compared)</span>
+<span class="sd">        :type mode:         str</span>
+<span class="sd">        :param obj1:        An iterable</span>
+<span class="sd">        :param obj2:        An iterable</span>
+<span class="sd">        :param name_obj1:   Name of the first offending object to print when</span>
+<span class="sd">                            raising an error</span>
+<span class="sd">        :type name_obj1:    str</span>
+<span class="sd">        :param name_obj2:   Name of the second offending object to print when</span>
+<span class="sd">                            raising an error</span>
+<span class="sd">        :type name_obj2:    str</span>
+<span class="sd">        :raises ValueError: Raises error if the check fails</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;len&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">obj1</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">obj2</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="n">f</span><span class="s2">&quot;config: </span><span class="si">{name_obj1}</span><span class="s2">, </span><span class="si">{name_obj2}</span><span class="s2"> have unequal lengths&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;val&#39;</span><span class="p">:</span>
+            <span class="n">col_match</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">obj1</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">obj2</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="p">[</span><span class="n">obj1</span><span class="p">,</span> <span class="n">obj2</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">col_match</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;config: </span><span class="si">{name_obj1}</span><span class="s2">, </span><span class="si">{name_obj2}</span><span class="s2"> do &quot;</span>
+                                     <span class="s2">&quot;not have matching values&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="FTPETLEngine"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.FTPETLEngine">[docs]</a><span class="k">class</span> <span class="nc">FTPETLEngine</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Houses methods needed to import files from an FTP server and write them</span>
+<span class="sd">    using an input schema to an S3 bucket as Snappy-compressed Parquet files</span>
+
+<span class="sd">    :attribute config:              An EngineConfig instance;</span>
+<span class="sd">                                    converted from the input dictionary when</span>
+<span class="sd">                                    initializing this class</span>
+<span class="sd">    :attribute part_mode:           A string; value is determined by</span>
+<span class="sd">                                    config.partition</span>
+<span class="sd">    :attribute df_main:             A pandas.DataFrame instance; initially</span>
+<span class="sd">                                    empty, accumulates the contents of the</span>
+<span class="sd">                                    imported files</span>
+<span class="sd">    :attribute mem:                 An integer; tracks the size of</span>
+<span class="sd">                                    df_main in memory</span>
+<span class="sd">    :attribute counter:             An integer; initially 0, increments if</span>
+<span class="sd">                                    filenames</span>
+<span class="sd">                                    will be duplicated when writing data</span>
+<span class="sd">    :attribute rows:                An integer; tracks how many rows have been</span>
+<span class="sd">                                    written</span>
+<span class="sd">    :attribute s3fs_inst:           An s3fs.S3FileSystem instance</span>
+<span class="sd">    :method etl:                    ETL workhorse method</span>
+<span class="sd">    :method connect_s3:             Sets s3fs_inst</span>
+<span class="sd">    :method import_file:            Appends file contents to df_main</span>
+<span class="sd">    :method chunk_write:            Write a portion of df_main contents</span>
+<span class="sd">                                    to a Snappy-compressed Parquet file</span>
+<span class="sd">    :staticmethod gen_pa_schema:    Makes the input schema Pyarrow-compatible</span>
+<span class="sd">    :staticmethod format_cols:      Applies a schema to a Pandas dataframe</span>
+<span class="sd">    :staticmethod write_parquet:    Writes a Pandas dataframe to a</span>
+<span class="sd">                                    Snappy-compressed Parquet file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize class variables and a logging instance</span>
+
+<span class="sd">        :param config:  Refer to input config structure documentation</span>
+<span class="sd">        :type config:   dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">EngineConfig</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s1">&#39;partition&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">part_mode</span> <span class="o">=</span> <span class="s1">&#39;date&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">partition</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">else</span> <span class="s1">&#39;other&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">part_mode</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rows</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s3fs_inst</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="FTPETLEngine.etl"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.FTPETLEngine.etl">[docs]</a>    <span class="k">def</span> <span class="nf">etl</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Connect to the FTP server and import each file by appending its</span>
+<span class="sd">        contents to df_main, then write a portion of the accumulated data</span>
+<span class="sd">        to the S3 instance when either multiple partitions are present or the</span>
+<span class="sd">        data exceeds the allowed memory capacity</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">s3fs_inst</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;An s3fs instance has not been initialized, call &quot;</span>
+                             <span class="s2">&quot;connect_s3 with a valid path to an AWS &quot;</span>
+                             <span class="s2">&quot;credentials file to rectify&quot;</span><span class="p">)</span>
+
+        <span class="n">oversize_flag</span><span class="p">,</span> <span class="n">head</span><span class="p">,</span> <span class="n">tail</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">pa_schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_pa_schema</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Scanning FTP server for matching files&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">ftplib</span><span class="o">.</span><span class="n">FTP</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ip_addr</span><span class="p">)</span> <span class="k">as</span> <span class="n">ftp</span><span class="p">:</span>
+            <span class="n">ftp</span><span class="o">.</span><span class="n">login</span><span class="p">()</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="n">FTPWalk</span><span class="p">(</span><span class="n">ftp</span><span class="p">)</span><span class="o">.</span><span class="n">get_files</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">dir_ptrn</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">file_ptrn</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Importing </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2">. Current memory usage: </span><span class="si">%i</span><span class="s2"> MB&quot;</span><span class="p">,</span>
+                <span class="n">file</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">/</span> <span class="mi">1000000</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">import_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Imported </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> successfully. Current memory usage: </span><span class="si">%i</span><span class="s2"> MB&quot;</span><span class="p">,</span>
+                <span class="n">file</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">/</span> <span class="mi">1000000</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_mode</span><span class="p">:</span>
+                <span class="c1"># Multiple partition values in partition column</span>
+                <span class="n">val_unique</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span><span class="p">[</span><span class="s1">&#39;partition&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+                <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_unique</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s2">&quot;&gt; 1 partition value present, writing partition </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="n">val_unique</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="c1"># Siphon off a partition and write it</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">chunk_write</span><span class="p">(</span>
+                        <span class="s1">&#39;multipart&#39;</span><span class="p">,</span> <span class="s1">&#39;leaveRem&#39;</span><span class="p">,</span> <span class="n">pa_schema</span><span class="p">,</span>
+                        <span class="n">part_val</span><span class="o">=</span><span class="n">val_unique</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">val_unique</span> <span class="o">=</span> <span class="n">val_unique</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Assign values to head and tail variables for use in filenames</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">head</span><span class="p">:</span>
+                    <span class="n">head</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">file_ptrn_abbr</span><span class="p">,</span> <span class="n">file</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">tail</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">file_ptrn_abbr</span><span class="p">,</span> <span class="n">file</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="c1"># Allowable memory capacity exceeded</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">mem_cap</span><span class="p">:</span>
+                <span class="n">oversize_flag</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Oversize, writing chunk&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_mode</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">chunk_write</span><span class="p">(</span>
+                        <span class="s1">&#39;oversize&#39;</span><span class="p">,</span> <span class="s1">&#39;leaveRem&#39;</span><span class="p">,</span> <span class="n">pa_schema</span><span class="p">,</span>
+                        <span class="n">part_val</span><span class="o">=</span><span class="n">val_unique</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">chunk_write</span><span class="p">(</span>
+                        <span class="s1">&#39;oversize&#39;</span><span class="p">,</span> <span class="s1">&#39;leaveRem&#39;</span><span class="p">,</span> <span class="n">pa_schema</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="n">head</span><span class="p">,</span>
+                        <span class="n">tail</span><span class="o">=</span><span class="n">tail</span><span class="p">)</span>
+                    <span class="n">head</span> <span class="o">=</span> <span class="n">tail</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_mode</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chunk_write</span><span class="p">(</span>
+                <span class="s1">&#39;residue&#39;</span><span class="p">,</span> <span class="s1">&#39;writeAll&#39;</span><span class="p">,</span> <span class="n">pa_schema</span><span class="p">,</span> <span class="n">part_val</span><span class="o">=</span><span class="n">val_unique</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">oversize_flag</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chunk_write</span><span class="p">(</span>
+                <span class="s1">&#39;residue&#39;</span><span class="p">,</span> <span class="s1">&#39;writeAll&#39;</span><span class="p">,</span> <span class="n">pa_schema</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="n">head</span><span class="p">,</span> <span class="n">tail</span><span class="o">=</span><span class="n">tail</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chunk_write</span><span class="p">(</span><span class="s1">&#39;residue&#39;</span><span class="p">,</span> <span class="s1">&#39;writeAll&#39;</span><span class="p">,</span> <span class="n">pa_schema</span><span class="p">)</span>
+        <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ETL complete, </span><span class="si">%i</span><span class="s2"> rows were exported&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FTPETLEngine.connect_s3"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.FTPETLEngine.connect_s3">[docs]</a>    <span class="k">def</span> <span class="nf">connect_s3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;~/.aws/.credentials&#39;</span><span class="p">,</span> <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a connection to the S3 buckets available to an AWS account</span>
+
+<span class="sd">        :param path:    Path to AWS credentials file</span>
+<span class="sd">        :type path:     str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">env_var</span> <span class="o">=</span> <span class="s1">&#39;AWS_SHARED_CREDENTIALS_FILE&#39;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="n">env_var</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s3fs_inst</span> <span class="o">=</span> <span class="n">s3fs</span><span class="o">.</span><span class="n">S3FileSystem</span><span class="p">(</span><span class="n">use_ssl</span><span class="o">=</span><span class="n">use_ssl</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FTPETLEngine.import_file"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.FTPETLEngine.import_file">[docs]</a>    <span class="k">def</span> <span class="nf">import_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read the passed filename and append the contents to df_main</span>
+
+<span class="sd">        :param file:   File on an FTP server to import</span>
+<span class="sd">        :type file:    str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Read file, skipping rows if needed</span>
+        <span class="n">rownums</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">file_abbr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">file_ptrn_abbr</span><span class="p">,</span> <span class="n">file</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s1">&#39;row_skip&#39;</span><span class="p">):</span>
+            <span class="n">row_skip</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">row_skip</span>
+            <span class="k">if</span> <span class="n">file_abbr</span> <span class="ow">in</span> <span class="n">row_skip</span><span class="p">:</span>
+                <span class="n">rownums</span> <span class="o">=</span> <span class="n">row_skip</span><span class="p">[</span><span class="n">file_abbr</span><span class="p">][</span><span class="s1">&#39;rownums&#39;</span><span class="p">]</span>
+                <span class="n">rowrepls</span> <span class="o">=</span> <span class="n">row_skip</span><span class="p">[</span><span class="n">file_abbr</span><span class="p">][</span><span class="s1">&#39;rowrepls&#39;</span><span class="p">]</span>
+        <span class="n">df_read</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;ftp://</span><span class="si">{self.config.ip_addr}{file}</span><span class="s2">&quot;</span><span class="p">,</span>
+                              <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="n">rownums</span><span class="p">)</span>
+        <span class="n">df_read</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">df_read</span><span class="o">.</span><span class="n">columns</span><span class="p">[[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># If last row is mostly empty (error), remove it</span>
+        <span class="k">if</span> <span class="n">df_read</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">df_read</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">df_read</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># Apply schema</span>
+        <span class="n">df_read</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">columns</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format_cols</span><span class="p">(</span><span class="n">df_read</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+        <span class="c1"># Insert replacement rows</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s1">&#39;row_skip&#39;</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">rownum</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rownums</span><span class="p">):</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">rowrepls</span><span class="p">[</span><span class="n">i</span><span class="p">]]))</span>
+                <span class="n">row</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">columns</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">format_cols</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+                <span class="n">df_read</span> <span class="o">=</span> <span class="n">df_read</span><span class="p">[:</span><span class="n">rownum</span><span class="p">]</span> \
+                    <span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">row</span><span class="p">,</span> <span class="n">df_read</span><span class="p">[</span><span class="n">rownum</span><span class="p">:]])</span> \
+                    <span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">+=</span> <span class="n">df_read</span><span class="o">.</span><span class="n">memory_usage</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="c1"># Create column based on partition name</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_mode</span><span class="p">:</span>
+            <span class="n">part_col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">partition</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_mode</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
+                <span class="n">part_format</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">partition</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">df_read</span><span class="p">[</span><span class="s1">&#39;partition&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df_read</span><span class="p">[</span><span class="n">part_col</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+                    <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">part_format</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_mode</span> <span class="o">==</span> <span class="s1">&#39;other&#39;</span><span class="p">:</span>
+                <span class="n">df_read</span><span class="p">[</span><span class="s1">&#39;partition&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df_read</span><span class="p">[</span><span class="n">part_col</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">df_read</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">df_read</span></div>
+
+<div class="viewcode-block" id="FTPETLEngine.chunk_write"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.FTPETLEngine.chunk_write">[docs]</a>    <span class="k">def</span> <span class="nf">chunk_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_source</span><span class="p">,</span> <span class="n">_mode</span><span class="p">,</span> <span class="n">_pa_schema</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract a chunk of required size and write it to an S3 bucket as a</span>
+<span class="sd">        Snappy-compressed Parquet file</span>
+
+<span class="sd">        :param _source:     One of [&#39;oversize&#39;, &#39;multipart&#39;, &#39;residue&#39;], passed</span>
+<span class="sd">                            from etl</span>
+<span class="sd">        :type _source:      str</span>
+<span class="sd">        :param _mode:       One of [&#39;writeAll&#39;, &#39;leaveRem&#39;], passed from etl</span>
+<span class="sd">        :type _mode:        str</span>
+<span class="sd">        :param _pa_schema:  Output from gen_pa_schema, passed from etl</span>
+<span class="sd">        :type _pa_schema:   pyarrow.Schema</span>
+<span class="sd">        :key head:          A str; first source file contained in df_main</span>
+<span class="sd">        :key tail:          A str; last source file contained in df_main</span>
+<span class="sd">        :key part_val:      A str; the partition name to write</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Check that _source and _mode have valid values</span>
+        <span class="k">if</span> <span class="n">_source</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;oversize&#39;</span><span class="p">,</span> <span class="s1">&#39;multipart&#39;</span><span class="p">,</span> <span class="s1">&#39;residue&#39;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid source for method chunk_write&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;writeAll&#39;</span><span class="p">,</span> <span class="s1">&#39;leaveRem&#39;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid mode for method chunk_write&#39;</span><span class="p">)</span>
+
+        <span class="n">s3_bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">s3_bucket</span>
+        <span class="n">table_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">table_name</span>
+
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">mem_cap</span><span class="p">:</span>
+            <span class="c1"># Construct filenames to export</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_mode</span><span class="p">:</span>
+                <span class="n">part_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">partition</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">f</span><span class="s2">&quot;s3://</span><span class="si">{s3_bucket}</span><span class="s2">/</span><span class="si">{table_name}</span><span class="s2">/&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;</span><span class="si">{part_name}</span><span class="s2">=</span><span class="si">{kwargs[&#39;part_val&#39;]}</span><span class="s2">/&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;</span><span class="si">{table_name}</span><span class="s2">_</span><span class="si">{part_name}</span><span class="s2">=</span><span class="si">{kwargs[&#39;part_val&#39;]}</span><span class="s2">_&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;{str(self.counter).zfill(2)}.parquet.snappy&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s1">&#39;head&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="s1">&#39;tail&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">f</span><span class="s2">&quot;s3://</span><span class="si">{s3_bucket}</span><span class="s2">/</span><span class="si">{table_name}</span><span class="s2">/&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;</span><span class="si">{table_name}</span><span class="s2">_</span><span class="si">{kwargs[&#39;head&#39;]}</span><span class="s2">_</span><span class="si">{kwargs[&#39;tail&#39;]}</span><span class="s2">_&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;{str(self.counter).zfill(2)}.parquet.snappy&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">f</span><span class="s2">&quot;s3://</span><span class="si">{s3_bucket}</span><span class="s2">/</span><span class="si">{table_name}</span><span class="s2">.parquet.snappy&quot;</span><span class="p">)</span>
+            <span class="n">nrows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">mem_cap</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">_mode</span> <span class="o">==</span> <span class="s1">&#39;leaveRem&#39;</span><span class="p">:</span>
+                <span class="c1"># Siphon off the data that won&#39;t be written based on _source,</span>
+                <span class="c1"># write the desired data, then reassign the remaining data to</span>
+                <span class="c1"># self.df_main</span>
+                <span class="k">if</span> <span class="n">_source</span> <span class="o">==</span> <span class="s1">&#39;oversize&#39;</span><span class="p">:</span>
+                    <span class="n">df_rem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span><span class="p">[</span><span class="n">nrows</span><span class="p">:]</span>
+                <span class="k">elif</span> <span class="n">_source</span> <span class="o">==</span> <span class="s1">&#39;multipart&#39;</span><span class="p">:</span>
+                    <span class="n">df_rem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span><span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span><span class="p">[</span><span class="s1">&#39;partition&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;part_val&#39;</span><span class="p">]]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">df_rem</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">df_rem</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_mode</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;partition&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_parquet</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span><span class="p">,</span> <span class="n">_pa_schema</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">s3fs_inst</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rows</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Wrote </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">=</span> <span class="n">df_rem</span><span class="o">.</span><span class="n">memory_usage</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span> <span class="o">=</span> <span class="n">df_rem</span>
+                <span class="k">if</span> <span class="n">_source</span> <span class="o">==</span> <span class="s1">&#39;oversize&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">_source</span> <span class="o">==</span> <span class="s1">&#39;multipart&#39;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_mode</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">_mode</span> <span class="o">==</span> <span class="s1">&#39;writeAll&#39;</span><span class="p">:</span>
+                <span class="c1"># Write the entire contents of self.df_main</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_parquet</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span><span class="p">,</span> <span class="n">_pa_schema</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">s3fs_inst</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rows</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Wrote </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">df_main</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="FTPETLEngine.gen_pa_schema"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.FTPETLEngine.gen_pa_schema">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">gen_pa_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert a schema to one compatible with Pyarrow</span>
+
+<span class="sd">        :param schema:  Refer to input config structure documentation</span>
+<span class="sd">        :type schema:   dict</span>
+
+<span class="sd">        :returns:       A pyarrow.Schema instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pa_schema</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;object&#39;</span><span class="p">:</span>
+                <span class="n">pa_schema</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()))</span>
+            <span class="k">elif</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;int8&#39;</span> <span class="ow">or</span> <span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Int64&#39;</span> <span class="ow">and</span> <span class="n">val</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;int8&#39;</span><span class="p">):</span>
+                <span class="n">pa_schema</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">int8</span><span class="p">()))</span>
+            <span class="k">elif</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;int16&#39;</span><span class="p">,</span> <span class="s1">&#39;int32&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Int64&#39;</span> <span class="ow">and</span>
+                                               <span class="n">val</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;int16&#39;</span><span class="p">,</span> <span class="s1">&#39;int32&#39;</span><span class="p">]):</span>
+                <span class="n">pa_schema</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">int32</span><span class="p">()))</span>
+            <span class="k">elif</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;int64&#39;</span> <span class="ow">or</span> <span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Int64&#39;</span> <span class="ow">and</span> <span class="n">val</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;int64&#39;</span><span class="p">):</span>
+                <span class="n">pa_schema</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()))</span>
+            <span class="k">elif</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;float32&#39;</span><span class="p">:</span>
+                <span class="n">pa_schema</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">float32</span><span class="p">()))</span>
+            <span class="k">elif</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;float64&#39;</span><span class="p">:</span>
+                <span class="n">pa_schema</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">float64</span><span class="p">()))</span>
+            <span class="k">elif</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;datetime&#39;</span><span class="p">:</span>
+                <span class="n">pa_schema</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">timestamp</span><span class="p">(</span><span class="s1">&#39;ms&#39;</span><span class="p">)))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Undefined type&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">schema</span><span class="p">(</span><span class="n">pa_schema</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FTPETLEngine.format_cols"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.FTPETLEngine.format_cols">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">format_cols</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">schema</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Format the columns of a Pandas dataframe in-place according to the</span>
+<span class="sd">        passed schema (as a dict, not a pyarrow.Schema instance)</span>
+
+<span class="sd">        :param df:      Pandas dataframe to process</span>
+<span class="sd">        :type df:       pandas.DataFrame</span>
+<span class="sd">        :param schema:  Refer to input config structure documentation</span>
+<span class="sd">        :type schema:   dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">col_def</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">col_def</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;int8&#39;</span><span class="p">,</span> <span class="s1">&#39;int16&#39;</span><span class="p">,</span> <span class="s1">&#39;int32&#39;</span><span class="p">,</span> <span class="s1">&#39;int64&#39;</span><span class="p">,</span> <span class="s1">&#39;float16&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="s1">&#39;float64&#39;</span><span class="p">,</span> <span class="s1">&#39;category&#39;</span><span class="p">]:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">col_def</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">col_def</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">col_def</span> <span class="o">==</span> <span class="s1">&#39;object&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">col_def</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Int64&#39;</span><span class="p">:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float64&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">col_def</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;datetime&#39;</span><span class="p">:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="n">col_def</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;datetime64[s]&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Undefined type&quot;</span><span class="p">,</span> <span class="n">col_def</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FTPETLEngine.write_parquet"><a class="viewcode-back" href="../../FTPETLEngine.html#FTPETLEngine.FTPETLEngine.FTPETLEngine.write_parquet">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">write_parquet</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">pa_schema</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">s3fs_inst</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Use Pyarrow and the passed schema to write a Pandas dataframe to a</span>
+<span class="sd">        Snappy-compressed Parquet file</span>
+
+<span class="sd">        :param df:          Pandas dataframe to write to a Parquet file</span>
+<span class="sd">        :type df:           pandas.DataFrame</span>
+<span class="sd">        :param filename:    File path to write to in an S3 bucket</span>
+<span class="sd">        :type filename:     str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pq</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span>
+            <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span>
+                <span class="n">df</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">pa_schema</span><span class="p">,</span> <span class="n">preserve_index</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">filename</span><span class="p">,</span> <span class="n">filesystem</span><span class="o">=</span><span class="n">s3fs_inst</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
