@@ -8,7 +8,7 @@ import re
 class FTPWalk:
     """
     Contains methods for traversing an FTP server using a BFS algorithm
-    Source: https://stackoverflow.com/a/43799926
+    Adapted from: https://github.com/Bohdan-Khomtchouk/FTPwalker
     """
     def __init__(self, connection):
         """
